@@ -46,8 +46,6 @@ project_slug:
   type: str
   help: "Python package slug (lowercase, underscores; used for internal naming)."
   default: "{{ project_name | lower | replace('-', '_') }}"
-  validator: >-
-    {{ project_slug.isidentifier() and not project_slug[0].isdigit() }}
 
 project_description:
   type: str
