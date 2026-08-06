@@ -1,0 +1,5 @@
+# Forza il fine riga LF per tutti gli script shell
+*.sh text eol=lf
+
+# Imposta la gestione automatica per il resto del codice
+* text=auto

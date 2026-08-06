@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - .env.dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - "{{ project_slug }}_postgres_data:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - "{{ project_slug }}_redis_data:/data"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.dev
+    working_dir: /app/project
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./project:/app/project
+      - "{{ project_slug }}_static:/app/staticfiles"
+      - "{{ project_slug }}_media:/app/mediafiles"
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - "{{ project_slug }}_static:/app/staticfiles:ro"
+      - "{{ project_slug }}_media:/app/mediafiles:ro"
+    depends_on:
+      - web
+
+volumes:
+  "{{ project_slug }}_postgres_data":
+  "{{ project_slug }}_redis_data":
+  "{{ project_slug }}_static":
+  "{{ project_slug }}_media":

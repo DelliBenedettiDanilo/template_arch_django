@@ -1,0 +1,78 @@
+# copier.yml
+# Copier template configuration for the Django Enterprise Boilerplate
+
+# --- Template settings (special keys start with underscore) ---
+
+_min_copier_version: "9.0.0"
+_answers_file: ".copier-answers.yml"
+_templates_suffix: ".jinja"
+_exclude:
+  - ".git"
+  - ".github"
+  - "__pycache__"
+  - "env"
+  - ".env"
+  - ".venv"
+  - "mediafiles"
+  - "staticfiles"
+  - "postgres_data_dev"
+  - "postgres_data_prod"
+
+# Commands to run after rendering the template
+_tasks:
+  # Copy .env.example to .env as a starting point (if .env does not exist)
+  - >
+    if [ ! -f ".env" ]; then
+      cp .env.example .env;
+      echo "[Copier] Created .env from .env.example. Remember to customize it.";
+    fi
+
+  # Initialize git repo if not already initialized (optional)
+  - >
+    if [ ! -d ".git" ]; then
+      git init;
+      echo "[Copier] Initialized a new git repository.";
+    fi
+
+
+# --- Template questions (variables) ---
+
+project_name:
+  type: str
+  help: "Project name (e.g. 'my-awesome-app')."
+  default: "django-enterprise-app"
+
+project_slug:
+  type: str
+  help: "Python package slug (lowercase, underscores; used for internal naming)."
+  default: "{{ project_name | lower | replace('-', '_') }}"
+  validator: >-
+    {{ project_slug.isidentifier() and not project_slug[0].isdigit() }}
+
+project_description:
+  type: str
+  help: "Short description of the project."
+  default: "A Django application based on the Django Enterprise Boilerplate."
+
+domain_name:
+  type: str
+  help: "Primary domain for the production deployment (e.g. 'example.com')."
+  default: "example.com"
+
+database_engine:
+  type: str
+  help: "Database engine to use by default."
+  default: "postgres"
+  choices:
+    - "postgres"
+    - "sqlite"
+
+include_ci:
+  type: bool
+  help: "Include GitHub Actions CI workflow (ci.yml)?"
+  default: true
+
+include_cd:
+  type: bool
+  help: "Include (disabled) CD workflow (cd.yml.disabled)?"
+  default: true

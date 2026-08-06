@@ -1,0 +1,47 @@
+name: CD
+
+# Gira solo quando qualcosa arriva su main (merge di una PR già passata dalla CI).
+# Usa un "environment" con reviewer obbligatorio: il deploy in produzione
+# non parte da solo, qualcuno deve approvarlo su GitHub prima che esegua.
+#
+# Secrets richiesti (Settings → Secrets and variables → Actions):
+#   PROD_HOST         host/IP del server di produzione
+#   PROD_SSH_USER      utente SSH con cui connettersi
+#   PROD_SSH_KEY       chiave privata SSH (formato PEM)
+#   PROD_PROJECT_PATH  percorso assoluto del progetto sul server (dove sta il repo clonato)
+#
+# Presuppone che sul server: il repo sia già clonato una volta a mano,
+# Docker e Docker Compose siano installati, e la chiave pubblica corrispondente
+# a PROD_SSH_KEY sia in ~/.ssh/authorized_keys dell'utente PROD_SSH_USER.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy sul server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.PROD_PROJECT_PATH }}
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker image prune -f
+
+      - name: Verifica /healthz/ dopo il deploy
+        run: |
+          sleep 5
+          curl -sf "http://${{ secrets.PROD_HOST }}/healthz/" || (echo "Healthcheck fallito dopo il deploy" && exit 1)
