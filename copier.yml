@@ -21,7 +21,7 @@ _exclude:
 
 # Commands to run after rendering the template
 _tasks:
-  - 'if not exist ".env" ( copy .env.example .env )'
+  - 'if not exist ".env" ( copy .env.example .env.dev )'
 
 
 # --- Template questions (variables) ---
